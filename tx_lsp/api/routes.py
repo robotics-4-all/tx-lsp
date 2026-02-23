@@ -4,7 +4,7 @@ import logging
 import os
 import tempfile
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile
 from lsprotocol import types as lsp_types
 
 from tx_lsp.api.models import (
@@ -250,3 +250,22 @@ def generate(generator_target: str, payload: ModelPayload):
                 artifacts.append(ArtifactItem(filename=rel_path, content=content))
 
     return GenerateResponse(artifacts=artifacts)
+
+
+async def _read_upload(file: UploadFile, language: str | None = None):
+    content = await file.read()
+    source = content.decode("utf-8")
+    filename = file.filename or "model.tmp"
+    return ModelPayload(source=source, language=language, filename=filename)
+
+
+@router.post("/validate/file", response_model=ValidateResponse)
+async def validate_file(file: UploadFile, language: str | None = None):
+    payload = await _read_upload(file, language)
+    return validate(payload)
+
+
+@router.post("/generate/{generator_target}/file", response_model=GenerateResponse)
+async def generate_file(generator_target: str, file: UploadFile, language: str | None = None):
+    payload = await _read_upload(file, language)
+    return generate(generator_target, payload)

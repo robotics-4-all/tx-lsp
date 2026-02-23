@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-api = ["fastapi>=0.100", "uvicorn>=0.20"]
+api = ["fastapi>=0.100", "uvicorn>=0.20", "python-multipart>=0.0.5"]
 
 [project.scripts]
 tx-lsp = "tx_lsp.__main__:main"
