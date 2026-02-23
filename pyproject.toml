@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tx-lsp"
+version = "0.1.0"
+description = "Generic Language Server Protocol implementation for textX-based DSLs"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    { name = "klpanagi" },
+]
+dependencies = [
+    "pygls>=1.0",
+    "lsprotocol",
+    "textx>=3.0",
+]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.100", "uvicorn>=0.20"]
+
+[project.scripts]
+tx-lsp = "tx_lsp.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["tx_lsp*"]
+
+[tool.ruff]
+line-length = 99
