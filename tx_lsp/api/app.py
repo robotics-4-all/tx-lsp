@@ -24,8 +24,8 @@ def create_app(
         api_key: Optional API key for authentication.
     """
     try:
-        from fastapi import FastAPI, Request
-        from fastapi.responses import JSONResponse
+        from fastapi import Depends, FastAPI, HTTPException, Security
+        from fastapi.security import APIKeyHeader
     except ImportError:
         raise ImportError(
             "FastAPI is required for the REST API. Install with: pip install tx-lsp[api]"
@@ -39,30 +39,26 @@ def create_app(
 
     model_manager = ModelManager(registry)
 
+    dependencies = []
+    if api_key:
+        api_key_header = APIKeyHeader(name="X-API-Key")
+
+        async def verify_api_key(key: str = Security(api_key_header)):
+            if key != api_key:
+                raise HTTPException(status_code=401, detail="Invalid or missing API key")
+
+        dependencies = [Depends(verify_api_key)]
+
     app = FastAPI(
         title="tx-lsp API",
         description="Generic REST API for textX-based DSLs",
         version="0.1.0",
     )
 
-    # API key middleware
-    if api_key:
-
-        @app.middleware("http")
-        async def check_api_key(request: Request, call_next):
-            if request.url.path.startswith("/api/"):
-                key = request.headers.get("X-API-Key")
-                if key != api_key:
-                    return JSONResponse(
-                        status_code=401,
-                        content={"detail": "Invalid or missing API key"},
-                    )
-            return await call_next(request)
-
     from tx_lsp.api.routes import init_routes, router
 
     init_routes(registry, model_manager)
-    app.include_router(router)
+    app.include_router(router, dependencies=dependencies)
 
     langs = registry.all_languages()
     log.info(
