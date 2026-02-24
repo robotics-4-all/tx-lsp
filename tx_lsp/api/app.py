@@ -1,7 +1,7 @@
-"""FastAPI application — optional REST API for tx-lsp.
+"""FastAPI application — rosetta-compatible REST API for tx-lsp.
 
 Reuses the same LanguageRegistry and ModelManager infrastructure
-as the LSP server, just exposed over HTTP instead of JSON-RPC.
+as the LSP server, exposed as a rosetta Backend API.
 """
 
 import logging
@@ -17,7 +17,7 @@ def create_app(
     extra_patterns: Optional[dict] = None,
     api_key: Optional[str] = None,
 ):
-    """Create a FastAPI application with tx-lsp endpoints.
+    """Create a FastAPI application with rosetta-compatible endpoints.
 
     Args:
         extra_patterns: Map of glob patterns to language names.
@@ -51,13 +51,14 @@ def create_app(
 
     app = FastAPI(
         title="tx-lsp API",
-        description="Generic REST API for textX-based DSLs",
+        description="Rosetta-compatible REST API for textX-based DSLs",
         version="0.1.0",
     )
 
-    from tx_lsp.api.routes import init_routes, router
+    from tx_lsp.api.routes import init_routes, public_router, router
 
     init_routes(registry, model_manager)
+    app.include_router(public_router)
     app.include_router(router, dependencies=dependencies)
 
     langs = registry.all_languages()

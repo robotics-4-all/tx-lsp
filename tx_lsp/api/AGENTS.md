@@ -1,37 +1,39 @@
-# API — Optional REST API Layer
+# API — Rosetta-Compatible REST API Layer
 
 ## OVERVIEW
 
-FastAPI HTTP interface reusing the same `LanguageRegistry` + `ModelManager` as the LSP server. Optional dependency: `pip install tx-lsp[api]`.
+FastAPI HTTP interface implementing the rosetta Backend API Contract. Reuses `LanguageRegistry` + `ModelManager` from the LSP server. Optional dependency: `pip install tx-lsp[api]`.
 
 ## STRUCTURE
 
 | File | Role |
 |------|------|
-| `app.py` | FastAPI app factory, API key middleware, route mounting |
-| `routes.py` | Endpoint handlers under `/api/v1/` |
-| `models.py` | Pydantic request/response schemas |
+| `app.py` | FastAPI app factory, API key auth (Security dependency), route mounting |
+| `routes.py` | `public_router` (no auth: `/info`, `/capabilities`, `/health`) + `router` (auth: operations + file upload) |
+| `models.py` | Pydantic models matching rosetta contract (LSP-compatible `Position`, `Range`, `Diagnostic`) |
 
 ## CONVENTIONS
 
-- All endpoints prefixed `/api/v1/`
-- Language resolution: `payload.language` name or auto-detect from `payload.filename`
+- No URL prefix — endpoints at root level (rosetta contract requirement)
+- Language resolution: from `uri` file extension → single-language fallback → 400 error
 - Errors via `raise HTTPException(status_code, detail)`
-- API key auth: optional, checked via `X-API-Key` header middleware
+- API key auth: optional, via FastAPI `Security(APIKeyHeader)` — only on operation endpoints, not `/health`/`/info`/`/capabilities`
 
 ## ENDPOINTS
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| POST | `/api/v1/validate` | Parse model, return diagnostics |
-| POST | `/api/v1/symbols` | Parse model, return document symbols |
-| POST | `/api/v1/completions` | Return completion candidates |
-| POST | `/api/v1/hover` | Return hover info at position |
-| GET | `/api/v1/generators` | List installed textX generators |
-| POST | `/api/v1/generate/{target}` | Run generator, return artifacts |
+| Method | Path | Purpose | Auth |
+|--------|------|---------|------|
+| GET | `/info` | DSL metadata (name, version, file extensions) | No |
+| GET | `/capabilities` | Supported operations | No |
+| GET | `/health` | Liveness check | No |
+| POST | `/validate` | Validate model, return diagnostics | Yes |
+| POST | `/generate` | Run code generation (target in body) | Yes |
+| POST | `/complete` | Completion suggestions at position | Yes |
+| POST | `/hover` | Hover info at position | Yes |
+| POST | `/validate/file` | Validate via file upload | Yes |
+| POST | `/generate/file` | Generate via file upload | Yes |
 
 ## ANTI-PATTERNS
 
-- `routes.py` uses `MockLS` classes to bridge API calls to LSP feature functions. If a feature accesses a new `ls` attribute, the mock breaks silently.
 - Module globals (`_registry`, `_model_manager`) set by `init_routes()` — not thread-safe for multi-worker deployments.
-- `_parse_model()` uses hardcoded `file:///tmp/` URI prefix — may conflict across concurrent requests.
+- `_parse_source()` uses hardcoded `file:///tmp/` URI prefix — may conflict across concurrent requests.

@@ -28,7 +28,7 @@ tx-lsp/
 | Task | Location | Notes |
 |------|----------|-------|
 | Add new LSP feature | `tx_lsp/features/` | Follow existing pattern: function takes `(ls, uri, position)` |
-| Add new API endpoint | `tx_lsp/api/routes.py` | Add route to `router`, request/response models in `models.py` |
+| Add new API endpoint | `tx_lsp/api/routes.py` | Rosetta contract: add to `router` (auth) or `public_router` (no auth). Models in `models.py` |
 | Support new file extension | `LanguageRegistry.register_extra_pattern()` or `--extra-pattern` CLI flag | |
 | Change CLI args | `tx_lsp/__main__.py` | |
 | Position/offset math | `tx_lsp/utils.py` | textX uses 0-based char offsets; LSP uses 0-based line/col |
@@ -56,7 +56,7 @@ tx-lsp/
 ## ANTI-PATTERNS
 
 - **Temp file writes**: `ModelManager.parse_document()` writes temp files to disk for textX import resolution. Must always `os.unlink()` in `finally`.
-- **API MockLS**: `routes.py` uses `MockLS` class to fake the LSP server interface. Fragile — breaks if features access new `ls` attributes.
+- **API complies with rosetta Backend API Contract**: Endpoints at root level, LSP-compatible models. See `tx_lsp/api/AGENTS.md`.
 - **Hardcoded SmAuto attributes**: `completion.py` references `brokers`, `entities`, `automations` — SmAuto-specific, not generic. Same in `symbols.py` (`metadata`, `monitor`, `brokers`, `entities`, `automations`).
 - **Module globals in routes**: `_registry` and `_model_manager` are module-level globals set by `init_routes()`. Not thread-safe.
 
