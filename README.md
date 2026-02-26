@@ -26,7 +26,7 @@
 
 **tx-lsp** is a generic LSP server that works with *any* textX-based DSL out of the box. It auto-discovers installed textX languages via Python entry points and provides full editor support — diagnostics, completions, hover, go-to-definition, and more. Built on [pygls](https://github.com/openlawlibrary/pygls) and [lsprotocol](https://github.com/microsoft/lsprotocol).
 
-Optionally, the same language infrastructure can be exposed as a **REST API** for CI pipelines, web editors, or any HTTP client.
+Optionally, the same language infrastructure can be exposed as a **REST API** that complies with the [Rosetta](https://github.com/robotics-4-all/rosetta) Backend API Contract — making any textX DSL instantly available as a backend service for the Rosetta DSL gateway.
 
 ---
 
@@ -43,9 +43,11 @@ Optionally, the same language infrastructure can be exposed as a **REST API** fo
 
 ### REST API (optional)
 
+- 📐 **Rosetta-compatible** — implements the [Backend API Contract](https://github.com/robotics-4-all/rosetta#-backend-api-contract) out of the box
 - 📋 Validate models and retrieve diagnostics over HTTP
 - 📤 File upload support for validation and code generation
 - ⚡ Run textX code generators and collect artifacts
+- 🗝️ Grammar keyword listing endpoint
 - 🔑 Optional API key authentication
 
 ---
@@ -106,61 +108,83 @@ tx-lsp --api --api-port 8080
 tx-lsp --api --api-port 8080 --api-key YOUR_SECRET_KEY
 ```
 
-When an API key is configured, include it in the `X-API-Key` header:
+When an API key is configured, include it in the `X-API-Key` header. Public endpoints (`/health`, `/info`, `/capabilities`, `/keywords`) do not require authentication.
 
 ```bash
-curl -H "X-API-Key: YOUR_SECRET_KEY" http://localhost:8080/api/v1/generators
+curl -H "X-API-Key: YOUR_SECRET_KEY" http://localhost:8080/validate \
+  -H "Content-Type: application/json" \
+  -d '{"source": "..."}'
 ```
 
 ---
 
 ## 📡 REST API Reference
 
-All endpoints are prefixed with `/api/v1`. Interactive docs available at `/docs` when the server is running.
+The API implements the [Rosetta Backend API Contract](https://github.com/robotics-4-all/rosetta#-backend-api-contract). Endpoints are at root level (no prefix). Interactive docs available at `/docs` when the server is running.
 
-### Endpoints
+### Public Endpoints (no auth)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/validate` | Validate a model, return diagnostics |
+| `GET`  | `/health` | Liveness check |
+| `GET`  | `/info` | DSL metadata (name, version, file extensions) |
+| `GET`  | `/capabilities` | Supported operations |
+| `GET`  | `/keywords` | Grammar keyword list for the DSL |
+
+### Operation Endpoints (auth required if API key configured)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/validate` | Validate model source, return diagnostics |
+| `POST` | `/generate` | Run code generation (target in body) |
+| `POST` | `/complete` | Completion suggestions at a position |
+| `POST` | `/hover` | Hover information at a position |
 | `POST` | `/validate/file` | Validate via file upload |
-| `POST` | `/symbols` | Get document symbols (outline) |
-| `POST` | `/completions` | Get completion candidates at a position |
-| `POST` | `/hover` | Get hover information at a position |
-| `GET`  | `/generators` | List installed textX generators |
-| `POST` | `/generate/{target}` | Run a code generator, return artifacts |
-| `POST` | `/generate/{target}/file` | Run a generator via file upload |
+| `POST` | `/generate/file` | Generate via file upload |
 
 ### Examples
 
-**Validate a model (JSON body):**
+**Validate a model:**
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/validate \
+curl -X POST http://localhost:8080/validate \
   -H "Content-Type: application/json" \
-  -d '{
-    "source": "Broker<MQTT> home_broker\n  host: \"localhost\"\n  port: 1883\nend",
-    "language": "smauto"
-  }'
+  -d '{"source": "item sensor { 42 }"}'
 ```
 
 **Validate via file upload:**
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/validate/file \
-  -F "file=@model.auto" \
-  -F "language=smauto"
+curl -X POST http://localhost:8080/validate/file \
+  -F "file=@model.auto"
 ```
 
 **Run code generation:**
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/generate/python \
+curl -X POST http://localhost:8080/generate \
   -H "Content-Type: application/json" \
-  -d '{
-    "source": "...",
-    "filename": "model.auto"
-  }'
+  -d '{"source": "...", "target": "python"}'
+```
+
+**Get completions at a position:**
+
+```bash
+curl -X POST http://localhost:8080/complete \
+  -H "Content-Type: application/json" \
+  -d '{"source": "item ", "position": {"line": 0, "character": 5}}'
+```
+
+**List grammar keywords:**
+
+```bash
+curl http://localhost:8080/keywords
+```
+
+**Check capabilities:**
+
+```bash
+curl http://localhost:8080/capabilities
 ```
 
 ---
@@ -215,6 +239,9 @@ The server auto-discovers all installed textX languages — no per-language conf
 # Editable install
 pip install -e .
 pip install -e ".[api]"    # with REST API deps
+
+# Run tests
+pytest
 
 # Lint & format
 ruff check tx_lsp/
