@@ -50,9 +50,29 @@ def init_routes(registry, model_manager):
 
 # ── Helpers ────────────────────────────────────────────────────
 
+_TEXTX_BUILTIN_LANGS = {"textX"}
+_TEXTX_BUILTIN_GEN_LANGS = {"textX", "textx", "any"}
+
+
+def _dsl_languages():
+    """Return only user-installed DSL languages, excluding textX builtins."""
+    return [l for l in _registry.all_languages() if l.name not in _TEXTX_BUILTIN_LANGS]
+
+
+def _dsl_generators():
+    """Return only user-installed generators, excluding textX builtins."""
+    from textx import generator_descriptions
+
+    dsl_gens = {}
+    for lang_name, gens in generator_descriptions().items():
+        if lang_name in _TEXTX_BUILTIN_GEN_LANGS:
+            continue
+        dsl_gens[lang_name] = gens
+    return dsl_gens
+
 
 def _resolve_language(uri=None):
-    """Resolve language from URI file extension, or fallback to primary language."""
+    """Resolve language from URI file extension, or fallback to primary DSL."""
     if uri:
         from tx_lsp.utils import uri_to_path
 
@@ -61,16 +81,12 @@ def _resolve_language(uri=None):
         if lang:
             return lang
 
-    langs = _registry.all_languages()
+    langs = _dsl_languages()
     if not langs:
-        raise HTTPException(503, "No textX languages discovered")
-
-    dsl_langs = [l for l in langs if l.name != "textX"]
-    chosen = dsl_langs if dsl_langs else langs
-
-    if len(chosen) > 1:
-        log.warning("Multiple languages available, defaulting to '%s'", chosen[0].name)
-    return chosen[0]
+        raise HTTPException(503, "No textX DSL languages discovered")
+    if len(langs) > 1:
+        log.warning("Multiple languages available, defaulting to '%s'", langs[0].name)
+    return langs[0]
 
 
 def _default_extension(lang):
@@ -116,15 +132,14 @@ def _convert_diagnostic(d):
 
 @public_router.get("/info", response_model=DSLInfoResponse)
 def info():
-    langs = _registry.all_languages()
+    langs = _dsl_languages()
     if not langs:
-        raise HTTPException(503, "No textX languages discovered")
+        raise HTTPException(503, "No textX DSL languages discovered")
 
-    dsl_langs = [l for l in langs if l.name != "textX"]
-    primary = (dsl_langs or langs)[0]
+    primary = langs[0]
 
     extensions = []
-    for lang in dsl_langs or langs:
+    for lang in langs:
         for pat in lang.pattern.split():
             ext = pat.replace("*", "")
             if ext not in extensions:
@@ -146,9 +161,7 @@ def info():
 def capabilities():
     caps = DSLCapabilities(validation=True, completion=True, hover=True)
     try:
-        from textx import generator_descriptions
-
-        gens = generator_descriptions()
+        gens = _dsl_generators()
         targets = set()
         for lang_gens in gens.values():
             for target_name in lang_gens:
@@ -284,9 +297,7 @@ async def generate_file(file: UploadFile, target: str):
 
 def _run_generation(state, lang, target):
     try:
-        from textx import generator_descriptions
-
-        gens = generator_descriptions()
+        gens = _dsl_generators()
     except Exception as e:
         raise HTTPException(500, f"Failed to load generators: {e}")
 
@@ -294,8 +305,6 @@ def _run_generation(state, lang, target):
     lang_gens = gens.get(lang.name, {})
     if target in lang_gens:
         gen_desc = lang_gens[target]
-    elif "any" in gens and target in gens["any"]:
-        gen_desc = gens["any"][target]
 
     if gen_desc is None:
         available = []
