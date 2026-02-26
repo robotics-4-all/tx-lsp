@@ -2,9 +2,11 @@
 
 **Generic Language Server Protocol implementation for [textX](https://textx.github.io/textX/)-based DSLs.**
 
-![Python](https://img.shields.io/badge/python-%3E%3D3.9-blue)
+[![CI](https://github.com/robotics-4-all/tx-lsp/actions/workflows/ci.yml/badge.svg)](https://github.com/robotics-4-all/tx-lsp/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/robotics-4-all/tx-lsp/branch/master/graph/badge.svg)](https://codecov.io/gh/robotics-4-all/tx-lsp)
+[![PyPI](https://img.shields.io/pypi/v/tx-lsp)](https://pypi.org/project/tx-lsp/)
+![Python](https://img.shields.io/pypi/pyversions/tx-lsp)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Version](https://img.shields.io/badge/version-0.1.0-orange)
 
 ---
 
@@ -236,16 +238,21 @@ The server auto-discovers all installed textX languages — no per-language conf
 ## 🛠️ Development
 
 ```bash
-# Editable install
-pip install -e .
-pip install -e ".[api]"    # with REST API deps
+# Editable install with all dev dependencies
+pip install -e ".[api,dev]"
 
 # Run tests
 pytest
 
+# Run tests with coverage
+pytest --cov=tx_lsp --cov-report=term-missing
+
 # Lint & format
 ruff check tx_lsp/
 ruff format tx_lsp/
+
+# Build package
+python -m build
 ```
 
 ---

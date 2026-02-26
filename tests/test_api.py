@@ -73,6 +73,30 @@ class TestInfo:
 # ── GET /capabilities ─────────────────────────────────────────
 
 
+class TestInfoWithExtraPatterns:
+    def test_includes_extra_pattern_extensions(self):
+        registry = LanguageRegistry()
+        lang = LanguageInfo(
+            name="testlang",
+            pattern="*.test",
+            description="Test language",
+            metamodel_factory=lambda: metamodel_from_str(GRAMMAR),
+        )
+        registry._languages["testlang"] = lang
+        registry.register_extra_pattern("*.custom", "testlang")
+
+        model_manager = ModelManager(registry)
+
+        app = FastAPI()
+        init_routes(registry, model_manager)
+        app.include_router(public_router)
+        app.include_router(router)
+
+        client = TestClient(app)
+        data = client.get("/info").json()
+        assert ".custom" in data["file_extensions"]
+
+
 class TestCapabilities:
     def test_returns_200(self, client):
         assert client.get("/capabilities").status_code == 200
@@ -314,3 +338,85 @@ class TestGenerate:
             },
         )
         assert resp.status_code == 404
+
+
+class TestGenerateFile:
+    def test_invalid_file_returns_diagnostics(self, client):
+        resp = client.post(
+            "/generate/file?target=python",
+            files={"file": ("model.test", INVALID_SOURCE.encode(), "text/plain")},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["artifacts"] == {}
+        assert len(data["diagnostics"]) > 0
+
+    def test_unknown_target_returns_404(self, client):
+        resp = client.post(
+            "/generate/file?target=nonexistent",
+            files={"file": ("model.test", VALID_SOURCE.encode(), "text/plain")},
+        )
+        assert resp.status_code == 404
+
+
+class TestHoverDetailed:
+    def test_hover_returns_range(self, client):
+        resp = client.post(
+            "/hover",
+            json={
+                "source": VALID_SOURCE,
+                "position": {"line": 0, "character": 5},
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        if data["content"]:
+            assert "range" in data
+
+    def test_hover_content_includes_class(self, client):
+        resp = client.post(
+            "/hover",
+            json={
+                "source": VALID_SOURCE,
+                "position": {"line": 0, "character": 0},
+            },
+        )
+        data = resp.json()
+        if data["content"]:
+            assert "Item" in data["content"] or "Model" in data["content"]
+
+    def test_hover_on_position_with_no_object(self, client):
+        resp = client.post(
+            "/hover",
+            json={
+                "source": VALID_SOURCE,
+                "position": {"line": 99, "character": 0},
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.json()["content"] is None
+
+
+class TestCompleteDetailed:
+    def test_complete_with_uri(self, client):
+        resp = client.post(
+            "/complete",
+            json={
+                "source": VALID_SOURCE,
+                "position": {"line": 0, "character": 0},
+                "uri": "file:///tmp/model.test",
+            },
+        )
+        assert resp.status_code == 200
+
+    def test_complete_includes_named_objects_via_walk(self, client):
+        resp = client.post(
+            "/complete",
+            json={
+                "source": VALID_SOURCE,
+                "position": {"line": 0, "character": 0},
+            },
+        )
+        data = resp.json()
+        labels = [i["label"] for i in data["items"]]
+        assert "foo" in labels

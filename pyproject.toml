@@ -12,6 +12,29 @@ requires-python = ">=3.9"
 authors = [
     { name = "klpanagi" },
 ]
+keywords = [
+    "lsp",
+    "language-server",
+    "textx",
+    "dsl",
+    "code-completion",
+    "diagnostics",
+    "hover",
+    "go-to-definition",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Interpreters",
+    "Topic :: Text Editors :: Integrated Development Environments (IDE)",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 dependencies = [
     "pygls>=1.0",
     "lsprotocol",
@@ -20,6 +43,20 @@ dependencies = [
 
 [project.optional-dependencies]
 api = ["fastapi>=0.100", "uvicorn>=0.20", "python-multipart>=0.0.5"]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "ruff>=0.4",
+    "pylint>=3.0",
+    "build>=1.0",
+    "twine>=5.0",
+    "httpx>=0.24",
+]
+
+[project.urls]
+Homepage = "https://github.com/robotics-4-all/tx-lsp"
+Repository = "https://github.com/robotics-4-all/tx-lsp"
+Issues = "https://github.com/robotics-4-all/tx-lsp/issues"
 
 [project.scripts]
 tx-lsp = "tx_lsp.__main__:main"
@@ -29,3 +66,7 @@ include = ["tx_lsp*"]
 
 [tool.ruff]
 line-length = 99
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
