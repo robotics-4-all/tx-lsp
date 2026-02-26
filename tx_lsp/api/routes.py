@@ -52,7 +52,7 @@ def init_routes(registry, model_manager):
 
 
 def _resolve_language(uri=None):
-    """Resolve language from URI file extension, or fallback to single language."""
+    """Resolve language from URI file extension, or fallback to primary language."""
     if uri:
         from tx_lsp.utils import uri_to_path
 
@@ -62,14 +62,11 @@ def _resolve_language(uri=None):
             return lang
 
     langs = _registry.all_languages()
-    if len(langs) == 1:
-        return langs[0]
     if not langs:
         raise HTTPException(503, "No textX languages discovered")
-    raise HTTPException(
-        400,
-        "Multiple languages available; provide 'uri' with a recognized file extension",
-    )
+    if len(langs) > 1:
+        log.warning("Multiple languages available, defaulting to '%s'", langs[0].name)
+    return langs[0]
 
 
 def _default_extension(lang):
@@ -158,6 +155,12 @@ def capabilities():
     return caps
 
 
+@public_router.get("/keywords")
+def keywords():
+    lang = _resolve_language()
+    return _get_keyword_completions(lang)
+
+
 @public_router.get("/health")
 def health():
     return {"status": "healthy"}
@@ -215,9 +218,12 @@ def hover(body: HoverRequest):
     from tx_lsp.features.hover import _build_hover_content
     from tx_lsp.utils import get_object_at_position, textx_pos_to_lsp_range
 
-    obj = get_object_at_position(
-        state.model, state.source, body.position.line, body.position.character
-    )
+    try:
+        obj = get_object_at_position(
+            state.model, state.source, body.position.line, body.position.character
+        )
+    except (IndexError, ValueError):
+        return HoverResponse()
     if obj is None:
         return HoverResponse()
 
