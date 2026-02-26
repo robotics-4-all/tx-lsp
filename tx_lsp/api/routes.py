@@ -64,9 +64,13 @@ def _resolve_language(uri=None):
     langs = _registry.all_languages()
     if not langs:
         raise HTTPException(503, "No textX languages discovered")
-    if len(langs) > 1:
-        log.warning("Multiple languages available, defaulting to '%s'", langs[0].name)
-    return langs[0]
+
+    dsl_langs = [l for l in langs if l.name != "textX"]
+    chosen = dsl_langs if dsl_langs else langs
+
+    if len(chosen) > 1:
+        log.warning("Multiple languages available, defaulting to '%s'", chosen[0].name)
+    return chosen[0]
 
 
 def _default_extension(lang):
@@ -116,8 +120,11 @@ def info():
     if not langs:
         raise HTTPException(503, "No textX languages discovered")
 
+    dsl_langs = [l for l in langs if l.name != "textX"]
+    primary = (dsl_langs or langs)[0]
+
     extensions = []
-    for lang in langs:
+    for lang in dsl_langs or langs:
         for pat in lang.pattern.split():
             ext = pat.replace("*", "")
             if ext not in extensions:
@@ -127,7 +134,6 @@ def info():
         if ext not in extensions:
             extensions.append(ext)
 
-    primary = langs[0]
     return DSLInfoResponse(
         name=primary.name,
         version=__version__,
