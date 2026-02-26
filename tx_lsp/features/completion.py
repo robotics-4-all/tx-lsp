@@ -77,28 +77,20 @@ def _get_keyword_completions(lang, prefix):
 def _extract_keywords(metamodel):
     """Extract all keywords from a textX metamodel's grammar.
 
-    textX stores grammar rules that contain string matches (keywords)
-    like 'Broker', 'Entity', 'when', 'then', etc.
+    Walks the PEG parser model (Arpeggio) via _parser_blueprint to find
+    StrMatch nodes, which represent literal keyword tokens in the grammar.
     """
     keywords = set()
 
-    # Walk all grammar rules in the metamodel
-    if not hasattr(metamodel, "_current_parser"):
-        # Try to get keywords from the grammar model
-        if hasattr(metamodel, "grammar_parser") and metamodel.grammar_parser:
-            _collect_keywords_from_parser(metamodel.grammar_parser, keywords)
-        # Fallback: collect rule names as potential keywords
-        for cls_name in metamodel:
-            if cls_name and not cls_name.startswith("_"):
-                keywords.add(cls_name)
+    blueprint = getattr(metamodel, "_parser_blueprint", None)
+    if blueprint is not None:
+        _collect_keywords_from_parser(blueprint, keywords)
 
     return keywords
 
 
 def _collect_keywords_from_parser(parser, keywords):
     """Collect string literal keywords from a textX parser's grammar."""
-    # textX grammar models have rules with string matches
-    # that serve as keywords in the DSL
     if hasattr(parser, "parser_model") and parser.parser_model:
         _walk_peg_model(parser.parser_model, keywords, visited=set())
 

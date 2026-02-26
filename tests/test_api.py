@@ -112,6 +112,17 @@ class TestKeywords:
         data = client.get("/keywords").json()
         assert isinstance(data, list)
 
+    def test_extracts_grammar_keywords(self, client):
+        data = client.get("/keywords").json()
+        labels = [item["label"] for item in data]
+        assert "item" in labels
+
+    def test_excludes_punctuation(self, client):
+        data = client.get("/keywords").json()
+        labels = [item["label"] for item in data]
+        assert "{" not in labels
+        assert "}" not in labels
+
     def test_items_have_completion_fields(self, client):
         data = client.get("/keywords").json()
         for item in data:
