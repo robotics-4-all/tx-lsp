@@ -175,7 +175,7 @@ def validate(body: ValidateRequest):
 
 @router.post("/generate", response_model=GenerateResponse)
 def generate(body: GenerateRequest):
-    state, lang = _parse_source(body.source)
+    state, lang = _parse_source(body.source, body.uri)
 
     if not body.target:
         raise HTTPException(400, "Generation target is required")

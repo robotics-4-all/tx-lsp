@@ -86,6 +86,7 @@ class GenerateRequest(BaseModel):
     source: str
     target: str | None = None
     params: dict[str, str] = Field(default_factory=dict)
+    uri: str | None = None
 
 
 class CompletionRequest(BaseModel):
