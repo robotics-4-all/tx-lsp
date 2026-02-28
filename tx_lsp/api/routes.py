@@ -56,7 +56,7 @@ _TEXTX_BUILTIN_GEN_LANGS = {"textX", "textx", "any"}
 
 def _dsl_languages():
     """Return only user-installed DSL languages, excluding textX builtins."""
-    return [l for l in _registry.all_languages() if l.name not in _TEXTX_BUILTIN_LANGS]
+    return [lang for lang in _registry.all_languages() if lang.name not in _TEXTX_BUILTIN_LANGS]
 
 
 def _dsl_generators():
