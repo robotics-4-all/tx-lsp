@@ -6,6 +6,8 @@ with the Rosetta DSL gateway (github.com/robotics-4-all/rosetta).
 
 from __future__ import annotations
 
+from typing import Dict, List, Optional
+
 from pydantic import BaseModel, Field
 
 
@@ -32,17 +34,17 @@ class Diagnostic(BaseModel):
     range: Range
     message: str
     severity: int = 1  # 1=Error, 2=Warning, 3=Info, 4=Hint
-    source: str | None = None
+    source: Optional[str] = None
 
 
 class CompletionItem(BaseModel):
     """An LSP-compatible completion suggestion."""
 
     label: str
-    kind: int | None = None
-    detail: str | None = None
-    documentation: str | None = None
-    insert_text: str | None = None
+    kind: Optional[int] = None
+    detail: Optional[str] = None
+    documentation: Optional[str] = None
+    insert_text: Optional[str] = None
 
 
 # ── Info & Capabilities ────────────────────────────────────────
@@ -53,8 +55,8 @@ class DSLInfoResponse(BaseModel):
 
     name: str
     version: str = "0.0.0"
-    file_extensions: list[str] = Field(default_factory=list)
-    language_id: str | None = None
+    file_extensions: List[str] = Field(default_factory=list)
+    language_id: Optional[str] = None
 
 
 class DSLCapabilities(BaseModel):
@@ -67,7 +69,7 @@ class DSLCapabilities(BaseModel):
     formatting: bool = False
     goto_definition: bool = False
     find_references: bool = False
-    generation_targets: list[str] = Field(default_factory=list)
+    generation_targets: List[str] = Field(default_factory=list)
 
 
 # ── Request Models ─────────────────────────────────────────────
@@ -77,16 +79,16 @@ class ValidateRequest(BaseModel):
     """Request body for POST /validate."""
 
     source: str
-    uri: str | None = None
+    uri: Optional[str] = None
 
 
 class GenerateRequest(BaseModel):
     """Request body for POST /generate."""
 
     source: str
-    target: str | None = None
-    params: dict[str, str] = Field(default_factory=dict)
-    uri: str | None = None
+    target: Optional[str] = None
+    params: Dict[str, str] = Field(default_factory=dict)
+    uri: Optional[str] = None
 
 
 class CompletionRequest(BaseModel):
@@ -94,7 +96,7 @@ class CompletionRequest(BaseModel):
 
     source: str
     position: Position
-    uri: str | None = None
+    uri: Optional[str] = None
 
 
 class HoverRequest(BaseModel):
@@ -102,7 +104,7 @@ class HoverRequest(BaseModel):
 
     source: str
     position: Position
-    uri: str | None = None
+    uri: Optional[str] = None
 
 
 # ── Response Models ────────────────────────────────────────────
@@ -112,24 +114,24 @@ class ValidateResponse(BaseModel):
     """Response from POST /validate."""
 
     valid: bool
-    diagnostics: list[Diagnostic] = Field(default_factory=list)
+    diagnostics: List[Diagnostic] = Field(default_factory=list)
 
 
 class GenerateResponse(BaseModel):
     """Response from POST /generate."""
 
-    artifacts: dict[str, str] = Field(default_factory=dict)
-    diagnostics: list[Diagnostic] = Field(default_factory=list)
+    artifacts: Dict[str, str] = Field(default_factory=dict)
+    diagnostics: List[Diagnostic] = Field(default_factory=list)
 
 
 class CompletionResponse(BaseModel):
     """Response from POST /complete."""
 
-    items: list[CompletionItem] = Field(default_factory=list)
+    items: List[CompletionItem] = Field(default_factory=list)
 
 
 class HoverResponse(BaseModel):
     """Response from POST /hover."""
 
-    content: str | None = None
-    range: Range | None = None
+    content: Optional[str] = None
+    range: Optional[Range] = None
