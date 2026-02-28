@@ -1,262 +1,230 @@
-# 🔤 tx-lsp
+<div align="center">
 
-**Generic Language Server Protocol implementation for [textX](https://textx.github.io/textX/)-based DSLs.**
+<img src=".github/assets/tx_lsp.png" alt="tx-lsp — Generic Language Server for textX DSLs" width="600"/>
 
+# tx-lsp
+
+**Instant IDE support for any textX-based DSL.**\
+Diagnostics · Completions · Hover · Go-to-Definition · References · Symbols
+
+[![PyPI](https://img.shields.io/pypi/v/tx-lsp?color=blue)](https://pypi.org/project/tx-lsp/)
+![Python](https://img.shields.io/pypi/pyversions/tx-lsp)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![CI](https://github.com/robotics-4-all/tx-lsp/actions/workflows/ci.yml/badge.svg)](https://github.com/robotics-4-all/tx-lsp/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/robotics-4-all/tx-lsp/branch/master/graph/badge.svg)](https://codecov.io/gh/robotics-4-all/tx-lsp)
-[![PyPI](https://img.shields.io/pypi/v/tx-lsp)](https://pypi.org/project/tx-lsp/)
-![Python](https://img.shields.io/pypi/pyversions/tx-lsp)
-![License](https://img.shields.io/badge/license-MIT-green)
+
+[Install](#installation) · [Quick Start](#quick-start) · [REST API](#rest-api) · [Editor Setup](#editor-integration) · [Contribute](#development)
+
+</div>
 
 ---
 
-## 📑 Table of Contents
+## Why tx-lsp?
 
-- [Overview](#-overview)
-- [Features](#-features)
-- [Installation](#-installation)
-- [Quick Start](#-quick-start)
-- [REST API Reference](#-rest-api-reference)
-- [Editor Integration](#-editor-integration)
-- [How It Works](#-how-it-works)
-- [Development](#-development)
-- [License](#-license)
+Building a DSL with [textX](https://textx.github.io/textX/) is fast. Getting editor support for it shouldn't be slow.
 
----
+**tx-lsp** is a generic [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) implementation that works with *any* textX grammar — **zero configuration required**. Install your textX language, start the server, and your editor lights up with diagnostics, completions, hover info, navigation, and more.
 
-## 🔎 Overview
+No custom LSP code. No per-language setup. Just `pip install` and go.
 
-**tx-lsp** is a generic LSP server that works with *any* textX-based DSL out of the box. It auto-discovers installed textX languages via Python entry points and provides full editor support — diagnostics, completions, hover, go-to-definition, and more. Built on [pygls](https://github.com/openlawlibrary/pygls) and [lsprotocol](https://github.com/microsoft/lsprotocol).
+### Key Highlights
 
-Optionally, the same language infrastructure can be exposed as a **REST API** that complies with the [Rosetta](https://github.com/robotics-4-all/rosetta) Backend API Contract — making any textX DSL instantly available as a backend service for the Rosetta DSL gateway.
+- **Zero-config** — auto-discovers installed textX languages via Python entry points
+- **Editor-agnostic** — works with VS Code, Neovim, Emacs, Sublime Text, or any LSP client
+- **Full LSP coverage** — diagnostics, completion, hover, go-to-definition, find references, document symbols
+- **Optional REST API** — expose any textX DSL as an HTTP service, [Rosetta](https://github.com/robotics-4-all/rosetta)-compatible
+- **Lightweight** — built on [pygls](https://github.com/openlawlibrary/pygls) and [lsprotocol](https://github.com/microsoft/lsprotocol), minimal footprint
 
 ---
 
-## ✨ Features
+## Installation
 
-### LSP Capabilities
-
-- 🔴 **Diagnostics** — real-time parse and semantic error reporting
-- 💡 **Completion** — grammar keywords and cross-reference suggestions
-- 💬 **Hover** — rule type, attributes, and metadata display
-- 🔗 **Go-to-Definition** — jump to where a symbol is defined (cross-file support)
-- 🔍 **Find References** — locate all usages of a symbol
-- 🗂️ **Document Symbols** — structured outline of the model
-
-### REST API (optional)
-
-- 📐 **Rosetta-compatible** — implements the [Backend API Contract](https://github.com/robotics-4-all/rosetta#-backend-api-contract) out of the box
-- 📋 Validate models and retrieve diagnostics over HTTP
-- 📤 File upload support for validation and code generation
-- ⚡ Run textX code generators and collect artifacts
-- 🗝️ Grammar keyword listing endpoint
-- 🔑 Optional API key authentication
-
----
-
-## 📦 Installation
-
-> Requires **Python ≥ 3.9**
+> **Requires Python 3.9+**
 
 ```bash
-# Core LSP server
 pip install tx-lsp
+```
 
-# With REST API support
+With REST API support:
+
+```bash
 pip install "tx-lsp[api]"
 ```
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### LSP Server
+### Start the LSP Server
 
 ```bash
-# stdio (default — for editor clients)
+# stdio — default, for editor integration
 tx-lsp
 
-# TCP (useful for debugging)
+# TCP — useful for debugging
 tx-lsp --tcp --port 2087
 
 # WebSocket
 tx-lsp --ws --port 2087
-
-# Custom log level
-tx-lsp --log-level DEBUG
 ```
 
-### Custom File Extensions
+### Map Custom File Extensions
 
-Map file extensions to textX languages when the DSL uses a different extension than what's registered:
-
-```bash
-tx-lsp --extra-pattern '*.auto=smauto'
-```
-
-Multiple patterns can be provided:
+When your DSL uses a file extension different from what's registered:
 
 ```bash
 tx-lsp --extra-pattern '*.auto=smauto' --extra-pattern '*.rob=robodsl'
 ```
 
-### REST API Server
+### Start the REST API
 
 ```bash
-# Start the API
 tx-lsp --api --api-port 8080
 
-# With API key authentication
-tx-lsp --api --api-port 8080 --api-key YOUR_SECRET_KEY
+# With authentication
+tx-lsp --api --api-port 8080 --api-key YOUR_SECRET
 ```
 
-When an API key is configured, include it in the `X-API-Key` header. Public endpoints (`/health`, `/info`, `/capabilities`, `/keywords`) do not require authentication.
-
-```bash
-curl -H "X-API-Key: YOUR_SECRET_KEY" http://localhost:8080/validate \
-  -H "Content-Type: application/json" \
-  -d '{"source": "..."}'
-```
+That's it. The server discovers all textX languages installed in your environment and serves them immediately.
 
 ---
 
-## 📡 REST API Reference
+## LSP Features
 
-The API implements the [Rosetta Backend API Contract](https://github.com/robotics-4-all/rosetta#-backend-api-contract). Endpoints are at root level (no prefix). Interactive docs available at `/docs` when the server is running.
+| Feature | Description |
+|---------|-------------|
+| **Diagnostics** | Real-time parse and semantic error reporting as you type |
+| **Completion** | Grammar keywords and cross-reference suggestions |
+| **Hover** | Rule type, attributes, and metadata on mouse-over |
+| **Go-to-Definition** | Jump to where any symbol is defined, across files |
+| **Find References** | Locate every usage of a symbol in the workspace |
+| **Document Symbols** | Structured outline for navigation and breadcrumbs |
 
-### Public Endpoints (no auth)
+---
+
+## REST API
+
+The optional REST API exposes the same language intelligence over HTTP, implementing the [Rosetta Backend API Contract](https://github.com/robotics-4-all/rosetta#-backend-api-contract). Interactive docs are available at `/docs` when the server is running.
+
+### Public Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET`  | `/health` | Liveness check |
-| `GET`  | `/info` | DSL metadata (name, version, file extensions) |
-| `GET`  | `/capabilities` | Supported operations |
-| `GET`  | `/keywords` | Grammar keyword list for the DSL |
+| `GET` | `/health` | Liveness probe |
+| `GET` | `/info` | DSL metadata — name, version, file extensions |
+| `GET` | `/capabilities` | Supported operations |
+| `GET` | `/keywords` | Grammar keyword list |
 
-### Operation Endpoints (auth required if API key configured)
+### Authenticated Endpoints
+
+> Requires `X-API-Key` header when `--api-key` is set.
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/validate` | Validate model source, return diagnostics |
-| `POST` | `/generate` | Run code generation (target in body) |
+| `POST` | `/validate/file` | Validate via file upload |
+| `POST` | `/generate` | Run code generation for a target |
+| `POST` | `/generate/file` | Generate via file upload |
 | `POST` | `/complete` | Completion suggestions at a position |
 | `POST` | `/hover` | Hover information at a position |
-| `POST` | `/validate/file` | Validate via file upload |
-| `POST` | `/generate/file` | Generate via file upload |
 
-### Examples
-
-**Validate a model:**
+### Usage Examples
 
 ```bash
+# Validate a model
 curl -X POST http://localhost:8080/validate \
   -H "Content-Type: application/json" \
-  -d '{"source": "item sensor { 42 }"}'
-```
+  -d '{"source": "entity Sensor { temperature: float }"}'
 
-**Validate via file upload:**
-
-```bash
+# Upload and validate a file
 curl -X POST http://localhost:8080/validate/file \
   -F "file=@model.auto"
-```
 
-**Run code generation:**
-
-```bash
+# Run code generation
 curl -X POST http://localhost:8080/generate \
   -H "Content-Type: application/json" \
   -d '{"source": "...", "target": "python"}'
-```
 
-**Get completions at a position:**
-
-```bash
+# Get completions
 curl -X POST http://localhost:8080/complete \
   -H "Content-Type: application/json" \
-  -d '{"source": "item ", "position": {"line": 0, "character": 5}}'
-```
-
-**List grammar keywords:**
-
-```bash
-curl http://localhost:8080/keywords
-```
-
-**Check capabilities:**
-
-```bash
-curl http://localhost:8080/capabilities
+  -d '{"source": "entity ", "position": {"line": 0, "character": 7}}'
 ```
 
 ---
 
-## 🖥️ Editor Integration
+## Editor Integration
 
-tx-lsp works with any LSP-compatible editor. The default transport is **stdio**, which is what most editors expect.
+tx-lsp speaks standard LSP over **stdio** (default), **TCP**, or **WebSocket**. It works with any LSP-compatible editor out of the box.
 
-| Editor | Setup |
-|--------|-------|
-| **VS Code** | Configure via `settings.json` or a dedicated extension |
-| **Neovim** | Use `nvim-lspconfig` with a custom server config |
-| **Emacs** | Configure via `lsp-mode` or `eglot` |
-| **Sublime Text** | Use the LSP package |
+| Editor | Integration |
+|--------|-------------|
+| **VS Code** | `settings.json` custom server config or dedicated extension |
+| **Neovim** | [`nvim-lspconfig`](https://github.com/neovim/nvim-lspconfig) custom server definition |
+| **Emacs** | [`eglot`](https://github.com/joaotavora/eglot) or [`lsp-mode`](https://github.com/emacs-lsp/lsp-mode) |
+| **Sublime Text** | [LSP package](https://github.com/sublimelsp/LSP) |
 
-The server auto-discovers all installed textX languages — no per-language configuration needed.
+> **No per-language configuration needed.** The server auto-discovers every textX language installed in the Python environment.
 
 ---
 
-## ⚙️ How It Works
+## How It Works
 
 ```
-┌─────────────────────────────────────────┐
-│              tx-lsp                     │
-│                                         │
-│  ┌──────────────┐   ┌──────────────┐   │
-│  │ Language     │   │ Model        │   │
-│  │ Registry     │──▶│ Manager      │   │
-│  │              │   │ (parse/cache)│   │
-│  └──────┬───────┘   └──────┬───────┘   │
-│         │                  │            │
-│    discover()         parse/cache       │
-│    via entry_points   per document      │
-│                            │            │
-│  ┌─────────────────────────┴──────────┐ │
-│  │           Features                 │ │
-│  │  diagnostics │ completion │ hover  │ │
-│  │  definition  │ references │symbols │ │
-│  └────────────────────────────────────┘ │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│                    tx-lsp                        │
+│                                                  │
+│  ┌────────────────┐      ┌────────────────────┐  │
+│  │   Language     │      │   Model            │  │
+│  │   Registry     │─────▶│   Manager          │  │
+│  │                │      │   (parse & cache)   │  │
+│  └───────┬────────┘      └─────────┬──────────┘  │
+│          │                         │              │
+│    Auto-discover             Parse/cache          │
+│    via entry_points          per document          │
+│                                    │              │
+│  ┌─────────────────────────────────┴────────────┐ │
+│  │              LSP Features                    │ │
+│  │                                              │ │
+│  │  diagnostics · completion · hover            │ │
+│  │  definition  · references · symbols          │ │
+│  └──────────────────────────────────────────────┘ │
+└──────────────────────────────────────────────────┘
 ```
 
-1. **LanguageRegistry** discovers all textX languages installed via Python entry points
-2. **ModelManager** parses documents using the appropriate metamodel and caches results
+1. **LanguageRegistry** discovers all textX languages installed as Python entry points
+2. **ModelManager** parses documents with the matching metamodel and caches results
 3. **Features** are stateless functions that query the cached model state
 
 ---
 
-## 🛠️ Development
+## Development
 
 ```bash
-# Editable install with all dev dependencies
+# Clone and install with dev dependencies
+git clone https://github.com/robotics-4-all/tx-lsp.git
+cd tx-lsp
 pip install -e ".[api,dev]"
 
 # Run tests
 pytest
 
-# Run tests with coverage
-pytest --cov=tx_lsp --cov-report=term-missing
-
-# Lint & format
+# Lint and format
 ruff check tx_lsp/
 ruff format tx_lsp/
 
-# Build package
+# Build distribution
 python -m build
 ```
 
 ---
 
-## 📄 License
+## Contributing
 
-[MIT](LICENSE)
+Contributions are welcome. Please open an issue first to discuss what you'd like to change.
+
+---
+
+## License
+
+[MIT](LICENSE) © 2024 [klpanagi](https://github.com/klpanagi)
