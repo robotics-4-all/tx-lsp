@@ -24,6 +24,7 @@ from tx_lsp.features.definition import goto_definition
 from tx_lsp.features.hover import get_hover_info
 from tx_lsp.features.references import find_references
 from tx_lsp.features.completion import get_completions
+from tx_lsp.features.semantic_tokens import get_semantic_tokens, TOKEN_TYPES, TOKEN_MODIFIERS
 
 log = logging.getLogger(__name__)
 
@@ -156,5 +157,17 @@ def create_server(extra_patterns=None):
     @server.feature(types.TEXT_DOCUMENT_DOCUMENT_SYMBOL)
     def document_symbol(params: types.DocumentSymbolParams):
         return get_document_symbols(server, params.text_document.uri)
+
+    # ── Semantic Tokens ───────────────────────────────────────────
+
+    @server.feature(
+        types.TEXT_DOCUMENT_SEMANTIC_TOKENS_FULL,
+        types.SemanticTokensLegend(
+            token_types=TOKEN_TYPES,
+            token_modifiers=TOKEN_MODIFIERS,
+        ),
+    )
+    def semantic_tokens_full(params: types.SemanticTokensParams):
+        return get_semantic_tokens(server, params.text_document.uri)
 
     return server

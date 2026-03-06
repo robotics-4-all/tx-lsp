@@ -322,3 +322,40 @@ async def test_symbols_invalid_model(client: LanguageClient):
     )
     assert result is not None
     assert len(result) == 0
+
+
+# ===========================================================================
+# Semantic Tokens
+# ===========================================================================
+
+
+@pytest.mark.asyncio
+async def test_semantic_tokens_valid_model(client: LanguageClient):
+    open_doc(client, TEST_URI, VALID_SOURCE)
+    await wait_for_diagnostics(client, TEST_URI)
+
+    result = await client.text_document_semantic_tokens_full_async(
+        types.SemanticTokensParams(
+            text_document=types.TextDocumentIdentifier(uri=TEST_URI),
+        )
+    )
+    assert result is not None
+    assert isinstance(result, types.SemanticTokens)
+    assert len(result.data) > 0
+    assert len(result.data) % 5 == 0
+
+
+@pytest.mark.asyncio
+async def test_semantic_tokens_invalid_model(client: LanguageClient):
+    uri = "file:///tmp/semtok_invalid.testlang"
+    open_doc(client, uri, INVALID_SOURCE)
+    await wait_for_diagnostics(client, uri)
+
+    result = await client.text_document_semantic_tokens_full_async(
+        types.SemanticTokensParams(
+            text_document=types.TextDocumentIdentifier(uri=uri),
+        )
+    )
+    # Should return empty tokens, not error
+    assert result is not None
+    assert len(result.data) == 0
