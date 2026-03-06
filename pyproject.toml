@@ -46,6 +46,7 @@ api = ["fastapi>=0.100", "uvicorn>=0.20", "python-multipart>=0.0.5"]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
+    "pytest-lsp>=1.0",
     "ruff>=0.4",
     "pylint>=3.0",
     "build>=1.0",
