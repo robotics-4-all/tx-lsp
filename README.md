@@ -39,7 +39,7 @@ No custom LSP code. No per-language setup. Just `pip install` and go.
 
 ## Installation
 
-> **Requires Python 3.9+**
+> **Requires Python 3.10+**
 
 ```bash
 pip install tx-lsp
