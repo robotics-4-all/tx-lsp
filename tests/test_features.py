@@ -732,3 +732,72 @@ class TestSymbolHelpers:
         assert isinstance(result, types.DocumentSymbol)
         assert result.name == "foo"
         assert result.detail == "Item"
+
+
+# ── Semantic Tokens ───────────────────────────────────────────
+
+from tx_lsp.features.semantic_tokens import (
+    get_semantic_tokens,
+    _collect_keyword_tokens,
+    _collect_model_tokens,
+    TOKEN_TYPES,
+)
+
+
+class TestGetSemanticTokens:
+    def test_returns_semantic_tokens_for_valid_model(self, ls):
+        uri = ls.parse_and_get_uri(VALID_SOURCE)
+        result = get_semantic_tokens(ls, uri)
+        assert result is not None
+        assert isinstance(result, types.SemanticTokens)
+        assert len(result.data) > 0
+        assert len(result.data) % 5 == 0  # must be groups of 5
+
+    def test_returns_empty_for_invalid_model(self, ls):
+        uri = ls.parse_and_get_uri(INVALID_SOURCE)
+        result = get_semantic_tokens(ls, uri)
+        assert result is not None
+        assert result.data == []
+
+    def test_returns_empty_for_missing_state(self, ls):
+        result = get_semantic_tokens(ls, "file:///nonexistent.test")
+        assert result is not None
+        assert result.data == []
+
+    def test_contains_keyword_tokens(self, ls):
+        uri = ls.parse_and_get_uri(VALID_SOURCE)
+        result = get_semantic_tokens(ls, uri)
+        # Decode the token types from the data array
+        token_type_indices = [result.data[i] for i in range(3, len(result.data), 5)]
+        keyword_index = TOKEN_TYPES.index("keyword")
+        assert keyword_index in token_type_indices
+
+    def test_contains_class_tokens(self, ls):
+        uri = ls.parse_and_get_uri(VALID_SOURCE)
+        result = get_semantic_tokens(ls, uri)
+        token_type_indices = [result.data[i] for i in range(3, len(result.data), 5)]
+        class_index = TOKEN_TYPES.index("class")
+        assert class_index in token_type_indices
+
+    def test_contains_number_tokens(self, ls):
+        uri = ls.parse_and_get_uri(VALID_SOURCE)
+        result = get_semantic_tokens(ls, uri)
+        token_type_indices = [result.data[i] for i in range(3, len(result.data), 5)]
+        number_index = TOKEN_TYPES.index("number")
+        assert number_index in token_type_indices
+
+    def test_data_is_delta_encoded(self, ls):
+        # Delta encoding means no negative values in deltaLine
+        uri = ls.parse_and_get_uri(VALID_SOURCE)
+        result = get_semantic_tokens(ls, uri)
+        for i in range(0, len(result.data), 5):
+            delta_line = result.data[i]
+            assert delta_line >= 0
+
+    def test_multiline_source(self, ls):
+        source = "item alpha { 1 }\nitem beta { 2 }"
+        uri = f"file://{ls._tmp_path}/model.test"
+        ls.model_manager.parse_document(uri, source)
+        result = get_semantic_tokens(ls, uri)
+        assert len(result.data) > 0
+        assert len(result.data) % 5 == 0
