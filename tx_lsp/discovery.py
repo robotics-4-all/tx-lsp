@@ -98,6 +98,13 @@ class LanguageRegistry:
 
         return None
 
+    def language_for_name(self, name):
+        """Find a language by its registered name.
+
+        Returns LanguageInfo or None.
+        """
+        return self._languages.get(name)
+
     def all_languages(self):
         """Return all discovered languages."""
         return list(self._languages.values())

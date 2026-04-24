@@ -71,8 +71,18 @@ def _dsl_generators():
     return dsl_gens
 
 
-def _resolve_language(uri=None):
-    """Resolve language from URI file extension, or fallback to primary DSL."""
+def _resolve_language(uri=None, language=None):
+    """Resolve language from explicit name, URI file extension, or fallback to primary DSL."""
+    if language:
+        lang = _registry.language_for_name(language)
+        if lang is None:
+            available = [l.name for l in _dsl_languages()]
+            raise HTTPException(
+                400,
+                f"Unknown language '{language}'. Available: {', '.join(available)}",
+            )
+        return lang
+
     if uri:
         from tx_lsp.utils import uri_to_path
 
@@ -97,9 +107,9 @@ def _default_extension(lang):
     return ".tmp"
 
 
-def _parse_source(source, uri=None):
+def _parse_source(source, uri=None, language=None):
     """Parse source text, resolve language, return (state, lang)."""
-    lang = _resolve_language(uri)
+    lang = _resolve_language(uri, language)
     filename = f"model{_default_extension(lang)}"
     effective_uri = uri or f"file:///tmp/{filename}"
     state = _model_manager.parse_document(effective_uri, source)
@@ -190,14 +200,14 @@ def health():
 
 @router.post("/validate", response_model=ValidateResponse)
 def validate(body: ValidateRequest):
-    state, _ = _parse_source(body.source, body.uri)
+    state, _ = _parse_source(body.source, body.uri, body.language)
     diagnostics = [_convert_diagnostic(d) for d in state.diagnostics]
     return ValidateResponse(valid=state.is_valid, diagnostics=diagnostics)
 
 
 @router.post("/generate", response_model=GenerateResponse)
 def generate(body: GenerateRequest):
-    state, lang = _parse_source(body.source, body.uri)
+    state, lang = _parse_source(body.source, body.uri, body.language)
 
     if not body.target:
         raise HTTPException(400, "Generation target is required")
@@ -213,7 +223,7 @@ def generate(body: GenerateRequest):
 
 @router.post("/complete", response_model=CompletionResponse)
 def complete(body: CompletionRequest):
-    lang = _resolve_language(body.uri)
+    lang = _resolve_language(body.uri, body.language)
     items = []
 
     items.extend(_get_keyword_completions(lang))
@@ -229,7 +239,7 @@ def complete(body: CompletionRequest):
 
 @router.post("/hover", response_model=HoverResponse)
 def hover(body: HoverRequest):
-    state, _ = _parse_source(body.source, body.uri)
+    state, _ = _parse_source(body.source, body.uri, body.language)
 
     if state.model is None:
         return HoverResponse()
