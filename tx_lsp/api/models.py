@@ -80,6 +80,7 @@ class ValidateRequest(BaseModel):
 
     source: str
     uri: Optional[str] = None
+    language: Optional[str] = None
 
 
 class GenerateRequest(BaseModel):
@@ -89,6 +90,7 @@ class GenerateRequest(BaseModel):
     target: Optional[str] = None
     params: Dict[str, str] = Field(default_factory=dict)
     uri: Optional[str] = None
+    language: Optional[str] = None
 
 
 class CompletionRequest(BaseModel):
@@ -97,6 +99,7 @@ class CompletionRequest(BaseModel):
     source: str
     position: Position
     uri: Optional[str] = None
+    language: Optional[str] = None
 
 
 class HoverRequest(BaseModel):
@@ -105,6 +108,7 @@ class HoverRequest(BaseModel):
     source: str
     position: Position
     uri: Optional[str] = None
+    language: Optional[str] = None
 
 
 # ── Response Models ────────────────────────────────────────────
